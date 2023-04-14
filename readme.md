@@ -2,7 +2,7 @@
 This is the first project for CS515 Spring 2023
 
 ## Development by:
-Yuqi Dong,   
+Yuqi Dong, ydong28@stevens.edu
 Siyan Liu, sliu112@stevens.edu  
 
 ### the URL of your public GitHub repo:
