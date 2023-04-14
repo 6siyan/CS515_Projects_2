@@ -51,7 +51,7 @@ def lex(s: str) -> list[token]:
             else:
                 tokens.append(token('var', word))
 
-        #     i = end
+            i = end
         # elif s[i].isdigit():
         #     end = i + 1
         #     while end < len(s) and s[end].isdigit():
@@ -133,7 +133,7 @@ def add_subtract(ts: list[token], i: int) -> tuple[ast, int]:
 
     lhs, i = multiply_divide(ts, i)
 
-    while i < len(ts) and ts[i].typ == 'sym' and ts[i].val == '+' or ts[i].val == '-':
+    while i < len(ts) and ts[i].typ == 'sym' and (ts[i].val == '+' or ts[i].val == '-'):
         flag_as = ts[i].val
         rhs, i = multiply_divide(ts, i+1)
         lhs = ast(flag_as, lhs, rhs)
@@ -147,7 +147,7 @@ def multiply_divide(ts: list[token], i: int) -> tuple[ast, int]:
 
     lhs, i = atom_new(ts, i)
 
-    while i < len(ts) and ts[i].typ == 'sym' and ts[i].val == '*' or ts[i].val == '/':
+    while i < len(ts) and ts[i].typ == 'sym' and (ts[i].val == '*' or ts[i].val == '/'):
         flag_md = ts[i].val
         rhs, i = atom_new(ts, i+1)
         lhs = ast(flag_md, lhs, rhs)
@@ -279,5 +279,5 @@ def interp(a: ast, env: set[str]) -> bool:
         return interp(a.children[0], env) or interp(a.children[1], env)
 
     raise SyntaxError(f'unknown operation {a.typ}')
-
+#print(lex('a + b - c * d'))
 print(parse('a + b - c * d'))
