@@ -2,7 +2,7 @@
 
 from typing import Any
 
-
+RET = {}
 class token():
     typ: str
     val: str
@@ -140,7 +140,7 @@ def parse(s: str) -> ast:
 
     # a, i = disj(ts, 0)
 
-    a, i = add_sub(ts, 0)
+    a, i = assign(ts, 0)
 
     if i != len(ts):
         raise SyntaxError(f"expected EOF, found {ts[i:]!r}")
@@ -347,11 +347,15 @@ def interp(a: ast, *env: set[str]):
         if len(a.children) == 1:
             return interp(a.children[0])
         return interp(a.children[0]) - interp(a.children[1])
-    # elif a.typ == '=':
-    #     return a.children[0] = a.children[1]
+
+    elif a.typ == '=':
+        global RET
+        RET[a.children[0].children[0]] = interp(a.children[1])
+        return RET
 
     raise SyntaxError(f'unknown operation {a.typ}')
 
 print(lex('x=2'))
 print(parse('x=2'))
-# print(interp(parse('1*2+3^4')))
+print(interp(parse('x=2+1')))
+print(RET)
