@@ -352,7 +352,6 @@ def interp(a: ast, *env: set[str]):
 
     raise SyntaxError(f'unknown operation {a.typ}')
 
-
 print(lex('x=2'))
 print(parse('x=2'))
 # print(interp(parse('1*2+3^4')))
