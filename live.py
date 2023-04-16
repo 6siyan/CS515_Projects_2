@@ -18,6 +18,7 @@ class token():
     def __repr__(self):
         return f'token({self.typ!r}, {self.val!r})'
 
+
 def lex(s: str) -> list[token]:
     """
     >>> lex('')
@@ -38,20 +39,20 @@ def lex(s: str) -> list[token]:
     while i < len(s):
         if s[i].isspace():
             i += 1
-        elif s[i].isalpha():
-            end = i + 1
-            while end < len(s) and (s[end].isalnum() or s[end] == '_'):
-                end += 1
-            assert end >= len(s) or not (s[end].isalnum() or s[end] == '_')
-
-            word = s[i:end]
-
-            if word in ['true', 'false']:
-                tokens.append(token('kw', word))
-            else:
-                tokens.append(token('var', word))
-
-            i = end
+        # elif s[i].isalpha():
+        #     end = i + 1
+        #     while end < len(s) and (s[end].isalnum() or s[end] == '_'):
+        #         end += 1
+        #     assert end >= len(s) or not (s[end].isalnum() or s[end] == '_')
+        #
+        #     word = s[i:end]
+        #
+        #     if word in ['true', 'false']:
+        #         tokens.append(token('kw', word))
+        #     else:
+        #         tokens.append(token('var', word))
+        #
+        #     i = end
 
         elif s[i].isdigit():
             end = i + 1
@@ -66,6 +67,16 @@ def lex(s: str) -> list[token]:
                 tokens.append(token('num', s[i:end]))
             i = end
 
+        elif s[i].isalpha():
+            end = i + 1
+            while end < len(s) and s[end].isalnum() or s[end] == '_':
+                end += 1
+            tokens.append(token('var', s[i:end]))
+            i = end
+
+        elif s[i] == '=':
+            tokens.append(token('sym', '='))
+            i += 1
         elif s[i] == '!':
             tokens.append(token('sym', '!'))
             i += 1
@@ -87,25 +98,23 @@ def lex(s: str) -> list[token]:
         elif s[i] == '^':
             tokens.append(token('sym', '^'))
             i += 1
-        elif s[i] == '^':
-            tokens.append(token('sym', '^'))
-            i += 1
         elif s[i] == '(':
             tokens.append(token('sym', '('))
             i += 1
         elif s[i] == ')':
             tokens.append(token('sym', ')'))
             i += 1
-        elif s[i:i+2] == '||':
+        elif s[i:i + 2] == '||':
             tokens.append(token('sym', '||'))
             i += 2
-        elif s[i:i+2] == '&&':
+        elif s[i:i + 2] == '&&':
             tokens.append(token('sym', '&&'))
             i += 2
         else:
             raise SyntaxError(f'unexpected character {s[i]}')
 
     return tokens
+
 
 # PARSING
 
@@ -125,74 +134,87 @@ class ast():
     def __repr__(self):
         return f'ast({self.typ!r}, {", ".join([repr(c) for c in self.children])})'
 
+
 def parse(s: str) -> ast:
     ts = lex(s)
 
     # a, i = disj(ts, 0)
 
-    a, i = add_subtract(ts, 0)
+    a, i = add_sub(ts, 0)
 
     if i != len(ts):
         raise SyntaxError(f"expected EOF, found {ts[i:]!r}")
 
     return a
 
-def add_subtract(ts: list[token], i: int) -> tuple[ast, int]:
+
+def assign(ts: list[token], i: int) -> tuple[ast, int]:
     if i >= len(ts):
-        raise SyntaxError('expected add_subtract, found EOF')
+        raise SyntaxError('expected assign, found EOF')
 
-    lhs, i = multiply_divide(ts, i)
+    lhs, i = add_sub(ts, i)
 
-    while i < len(ts) and ts[i].typ == 'sym' and (ts[i].val == '+' or ts[i].val == '-'):
+    while i < len(ts) and ts[i].typ == 'sym' and ts[i].val == '=':
         flag_as = ts[i].val
-        rhs, i = multiply_divide(ts, i+1)
+        rhs, i = add_sub(ts, i + 1)
         lhs = ast(flag_as, lhs, rhs)
 
     return lhs, i
 
 
-def multiply_divide(ts: list[token], i: int) -> tuple[ast, int]:
+def add_sub(ts: list[token], i: int) -> tuple[ast, int]:
     if i >= len(ts):
-        raise SyntaxError('expected multiply_divide, found EOF')
+        raise SyntaxError('expected add_sub, found EOF')
+
+    lhs, i = mult_div_mod(ts, i)
+
+    while i < len(ts) and ts[i].typ == 'sym' and (ts[i].val == '+' or ts[i].val == '-'):
+        flag_as = ts[i].val
+        rhs, i = mult_div_mod(ts, i + 1)
+        lhs = ast(flag_as, lhs, rhs)
+
+    return lhs, i
+
+
+def mult_div_mod(ts: list[token], i: int) -> tuple[ast, int]:
+    if i >= len(ts):
+        raise SyntaxError('expected mult_div_mod, found EOF')
+
+    lhs, i = expon(ts, i)
+
+    while i < len(ts) and ts[i].typ == 'sym' and (ts[i].val == '*' or ts[i].val == '/' or ts[i].val == '%'):
+        flag_md = ts[i].val
+        rhs, i = expon(ts, i + 1)
+        lhs = ast(flag_md, lhs, rhs)
+
+    return lhs, i
+
+
+def expon(ts: list[token], i: int) -> tuple[ast, int]:
+    if i >= len(ts):
+        raise SyntaxError('expected expon, found EOF')
 
     lhs, i = atom(ts, i)
 
-    while i < len(ts) and ts[i].typ == 'sym' and (ts[i].val == '*' or ts[i].val == '/' or ts[i].val == '%'):
+    while i < len(ts) and ts[i].typ == 'sym' and ts[i].val == '^':
         flag_md = ts[i].val
         rhs, i = atom(ts, i + 1)
         lhs = ast(flag_md, lhs, rhs)
 
     return lhs, i
 
-# def neg(ts: list[token], i: int) -> tuple[ast, int]:
-#     """
-#     >>> parse('! true')
-#     ast('!', ast('val', True))
-#     >>> parse('!! true')
-#     ast('!', ast('!', ast('val', True)))
-#     """
-#
-#     if i >= len(ts):
-#         raise SyntaxError('expected negation, found EOF')
-#
-#     if ts[i].typ == 'sym' and ts[i].val == '-':
-#         a, i = neg(ts, i+1)
-#         return ast('!', a), i
-#     else:
-#         return atom(ts, i)
-
 
 def atom(ts: list[token], i: int) -> tuple[ast, int]:
     t = ts[i]
 
     if t.typ == 'var':
-        return ast('var', t.val), i+1
+        return ast('var', t.val), i + 1
     elif t.typ == 'num':
-        return ast('num', t.val), i+1
+        return ast('num', t.val), i + 1
     elif t.typ == 'kw' and t.val in ['true', 'false']:
         return ast('val', t.val == 'true'), i + 1
     elif t.typ == 'sym' and t.val == '(':
-        a, i = add_subtract(ts, i + 1)
+        a, i = add_sub(ts, i + 1)
 
         if i >= len(ts):
             raise SyntaxError(f'expected right paren, got EOF')
@@ -202,7 +224,7 @@ def atom(ts: list[token], i: int) -> tuple[ast, int]:
         return a, i + 1
 
     elif ts[i].val == '-':
-        a, i = atom(ts, i+1)
+        a, i = atom(ts, i + 1)
         return ast('-', a), i
 
     raise SyntaxError(f'expected atom, got "{ts[i]}"')
@@ -311,6 +333,8 @@ def interp(a: ast, *env: set[str]):
         return interp(a.children[0], env) and interp(a.children[1], env)
     elif a.typ == '||':
         return interp(a.children[0], env) or interp(a.children[1], env)
+    elif a.typ == '^':
+        return interp(a.children[0]) ** interp(a.children[1])
     elif a.typ == '*':
         return interp(a.children[0]) * interp(a.children[1])
     elif a.typ == '/':
@@ -322,11 +346,12 @@ def interp(a: ast, *env: set[str]):
     elif a.typ == '-':
         if len(a.children) == 1:
             return interp(a.children[0])
-        # elif isinstance(a.children[0], float):
-        #     return -a.children[0]
         return interp(a.children[0]) - interp(a.children[1])
+    # elif a.typ == '=':
+    #     return a.children[0] = a.children[1]
 
     raise SyntaxError(f'unknown operation {a.typ}')
 
-print(parse('2---2--3'))
-print(interp(parse('2---2--3')))
+print(lex('x=2'))
+print(parse('x=2'))
+# print(interp(parse('1*2+3^4')))
