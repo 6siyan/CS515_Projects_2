@@ -52,18 +52,19 @@ def lex(s: str) -> list[token]:
                 tokens.append(token('var', word))
 
             i = end
-        # elif s[i].isdigit():
-        #     end = i + 1
-        #     while end < len(s) and s[end].isdigit():
-        #         end += 1
-        #     if end < len(s) and s[end] == '.':
-        #         end += 1
-        #         while end < len(s) and s[end].isdigit():
-        #             end += 1
-        #         tokens.append(token('num', s[i:end]))
-        #     else:
-        #         tokens.append(token('num', s[i:end]))
-        #     i = end
+
+        elif s[i].isdigit():
+            end = i + 1
+            while end < len(s) and s[end].isdigit():
+                end += 1
+            if end < len(s) and s[end] == '.':
+                end += 1
+                while end < len(s) and s[end].isdigit():
+                    end += 1
+                tokens.append(token('num', s[i:end]))
+            else:
+                tokens.append(token('num', s[i:end]))
+            i = end
 
         elif s[i] == '!':
             tokens.append(token('sym', '!'))
@@ -79,6 +80,15 @@ def lex(s: str) -> list[token]:
             i += 1
         elif s[i] == '/':
             tokens.append(token('sym', '/'))
+            i += 1
+        elif s[i] == '%':
+            tokens.append(token('sym', '/'))
+            i += 1
+        elif s[i] == '^':
+            tokens.append(token('sym', '^'))
+            i += 1
+        elif s[i] == '^':
+            tokens.append(token('sym', '^'))
             i += 1
         elif s[i] == '(':
             tokens.append(token('sym', '('))
@@ -145,21 +155,40 @@ def multiply_divide(ts: list[token], i: int) -> tuple[ast, int]:
     if i >= len(ts):
         raise SyntaxError('expected multiply_divide, found EOF')
 
-    lhs, i = atom_new(ts, i)
+    lhs, i = atom(ts, i)
 
-    while i < len(ts) and ts[i].typ == 'sym' and (ts[i].val == '*' or ts[i].val == '/'):
+    while i < len(ts) and ts[i].typ == 'sym' and (ts[i].val == '*' or ts[i].val == '/' or ts[i].val == '%'):
         flag_md = ts[i].val
-        rhs, i = atom_new(ts, i+1)
+        rhs, i = atom(ts, i + 1)
         lhs = ast(flag_md, lhs, rhs)
 
     return lhs, i
 
+# def neg(ts: list[token], i: int) -> tuple[ast, int]:
+#     """
+#     >>> parse('! true')
+#     ast('!', ast('val', True))
+#     >>> parse('!! true')
+#     ast('!', ast('!', ast('val', True)))
+#     """
+#
+#     if i >= len(ts):
+#         raise SyntaxError('expected negation, found EOF')
+#
+#     if ts[i].typ == 'sym' and ts[i].val == '-':
+#         a, i = neg(ts, i+1)
+#         return ast('!', a), i
+#     else:
+#         return atom(ts, i)
 
-def atom_new(ts: list[token], i: int) -> tuple[ast, int]:
+
+def atom(ts: list[token], i: int) -> tuple[ast, int]:
     t = ts[i]
 
     if t.typ == 'var':
         return ast('var', t.val), i+1
+    elif t.typ == 'num':
+        return ast('num', t.val), i+1
     elif t.typ == 'kw' and t.val in ['true', 'false']:
         return ast('val', t.val == 'true'), i + 1
     elif t.typ == 'sym' and t.val == '(':
@@ -170,8 +199,11 @@ def atom_new(ts: list[token], i: int) -> tuple[ast, int]:
 
         if not (ts[i].typ == 'sym' and ts[i].val == ')'):
             raise SyntaxError(f'expected right paren, got "{ts[i]}"')
-
         return a, i + 1
+
+    elif ts[i].val == '-':
+        a, i = atom(ts, i+1)
+        return ast('-', a), i
 
     raise SyntaxError(f'expected atom, got "{ts[i]}"')
 
@@ -260,7 +292,7 @@ def atom_new(ts: list[token], i: int) -> tuple[ast, int]:
 
 # INTERPRETER
 
-def interp(a: ast, env: set[str]) -> bool:
+def interp(a: ast, *env: set[str]):
     """
     >>> interp(parse('x || y'), {'y'})
     True
@@ -269,6 +301,8 @@ def interp(a: ast, env: set[str]) -> bool:
     """
     if a.typ == 'val':
         return a.children[0]
+    elif a.typ == 'num':
+        return float(a.children[0])
     elif a.typ == 'var':
         return a.children[0] in env
     elif a.typ == '!':
@@ -277,7 +311,22 @@ def interp(a: ast, env: set[str]) -> bool:
         return interp(a.children[0], env) and interp(a.children[1], env)
     elif a.typ == '||':
         return interp(a.children[0], env) or interp(a.children[1], env)
+    elif a.typ == '*':
+        return interp(a.children[0]) * interp(a.children[1])
+    elif a.typ == '/':
+        return interp(a.children[0]) / interp(a.children[1])
+    elif a.typ == '%':
+        return interp(a.children[0]) % interp(a.children[1])
+    elif a.typ == '+':
+        return interp(a.children[0]) + interp(a.children[1])
+    elif a.typ == '-':
+        if len(a.children) == 1:
+            return interp(a.children[0])
+        # elif isinstance(a.children[0], float):
+        #     return -a.children[0]
+        return interp(a.children[0]) - interp(a.children[1])
 
     raise SyntaxError(f'unknown operation {a.typ}')
-#print(lex('a + b - c * d'))
-print(parse('a + b - c * d'))
+
+print(parse('2---2--3'))
+print(interp(parse('2---2--3')))
