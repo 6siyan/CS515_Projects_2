@@ -3,3 +3,8 @@ y  = 5
 z  = 2 + x * y
 z2 = (2 + x) * y
 print x, y, z, z2
+print ((5 - 1) - 1) - 1
+print 2 ^ 2 ^ 2
+print 1
+print 2
+1 /
