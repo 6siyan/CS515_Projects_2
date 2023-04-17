@@ -1,8 +1,9 @@
 # LEXING
-
+import copy
 from typing import Any
 
 RET = {}
+RET_temp = {}
 print_flag = 0
 class token():
     typ: str
@@ -235,12 +236,19 @@ def pre_dec_inc(ts: list[token], i: int) -> tuple[ast, int]:
     if i >= len(ts):
         raise SyntaxError('expected dec_inc, found EOF')
 
-    if ts[i].typ == 'sym' and (ts[i].val == '++' or ts[i].val == '--'):
-        flag_dec_inc = ts[i].val
-        a, i = pre_dec_inc(ts, i + 1)
-        return ast(flag_dec_inc, a), i
-    else:
-        return atom(ts, i)
+    if i < len(ts) and (ts[i].typ == 'var' or ts[i].typ == 'num'):
+        lhs, i = atom(ts, i)
+
+    if i < len(ts) and ts[i].typ == 'sym' and (ts[i].val == '++' or ts[i].val == '--'):
+        if ts[i - 1].typ == 'var':
+            flag_dec_inc = 'p' + ts[i].val
+        if i + 1 < len(ts) and ts[i + 1].typ == 'var':
+            flag_dec_inc = ts[i].val + 'p'
+        if i + 1 < len(ts) and (ts[i + 1].typ == 'var' or ts[i + 1].typ == 'num'):
+            lhs, i = atom(ts, i + 1)
+        return ast(flag_dec_inc, lhs), i + 1
+
+    return lhs, i
 
 
 def atom(ts: list[token], i: int) -> tuple[ast, int]:
@@ -354,12 +362,13 @@ def atom(ts: list[token], i: int) -> tuple[ast, int]:
 # INTERPRETER
 
 def interp(a: ast, *env: set[str]):
+    global RET
+    global RET_temp
     if a.typ == 'val':
         return a.children[0]
     elif a.typ == 'num':
         return float(a.children[0])
     elif a.typ == 'var':
-        global RET
         return RET[a.children[0]]
     elif a.typ == '!':
         return not interp(a.children[0], env)
@@ -385,10 +394,26 @@ def interp(a: ast, *env: set[str]):
     elif a.typ == '=':
         RET[a.children[0].children[0]] = interp(a.children[1])
         return RET
+    elif a.typ == '++p':
+        RET[a.children[0].children[0]] = RET[a.children[0].children[0]] + 1
+        return RET
+    elif a.typ == 'p++':
+        RET_temp = copy.deepcopy(RET)
+        RET[a.children[0].children[0]] = RET[a.children[0].children[0]] + 1
+        return RET_temp[a.children[0].children[0]]
+    elif a.typ == '--p':
+        RET[a.children[0].children[0]] = RET[a.children[0].children[0]] - 1
+        return RET
+    elif a.typ == 'p--':
+        RET_temp = copy.deepcopy(RET)
+        RET[a.children[0].children[0]] = RET[a.children[0].children[0]] - 1
+        return RET_temp[a.children[0].children[0]]
 
     raise SyntaxError(f'unknown operation {a.typ}')
 
-# print(lex('--y'))
-print(parse('++y'))
-# print(interp(parse('x=2+1')))
-# print(RET)
+
+print(interp(parse('y = 1')))
+print(RET)
+print(interp(parse('y++')))
+print(RET_temp)
+print(RET)
