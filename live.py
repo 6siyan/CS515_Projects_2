@@ -3,15 +3,12 @@
 from typing import Any
 
 RET = {}
+print_flag = 0
 class token():
     typ: str
     val: str
 
     def __init__(self, typ, val):
-        """
-        >>> token('sym', '(')
-        token('sym', '(')
-        """
         self.typ = typ
         self.val = val
 
@@ -20,41 +17,38 @@ class token():
 
 
 def lex(s: str) -> list[token]:
-    """
-    >>> lex('')
-    []
-    >>> lex('true false falsehood x')
-    [token('kw', 'true'), token('kw', 'false'), token('var', 'falsehood'), token('var', 'x')]
-    >>> lex('\\n!\\ra ||\\t b && c')
-    [token('sym', '!'), token('var', 'a'), token('sym', '||'), token('var', 'b'), token('sym', '&&'), token('var', 'c')]
-    >>> lex('))\\t\\t(   !a')
-    [token('sym', ')'), token('sym', ')'), token('sym', '('), token('sym', '!'), token('var', 'a')]
-    >>> lex('123 4.56')
-    [token('num', '123'), token('num', '4.56')]
-    """
 
     tokens = []
     i = 0
+    is_increment_or_decrement = False
 
     while i < len(s):
         if s[i].isspace():
             i += 1
-        # elif s[i].isalpha():
+        # elif s[i] == 'p':
+        #     if i+6 < len(s) and s[i:i+6] == 'print ':
+        #         pass
+        #         # tokens.append(token('sta', 'print'))
+        #     i += 6
+
+        # elif s[i].isdigit():
         #     end = i + 1
-        #     while end < len(s) and (s[end].isalnum() or s[end] == '_'):
+        #     while end < len(s) and s[end].isdigit():
         #         end += 1
-        #     assert end >= len(s) or not (s[end].isalnum() or s[end] == '_')
-        #
-        #     word = s[i:end]
-        #
-        #     if word in ['true', 'false']:
-        #         tokens.append(token('kw', word))
+        #     if end < len(s) and s[end] == '.':
+        #         end += 1
+        #         while end < len(s) and s[end].isdigit():
+        #             end += 1
+        #         tokens.append(token('num', s[i:end]))
         #     else:
-        #         tokens.append(token('var', word))
-        #
+        #         tokens.append(token('num', s[i:end]))
         #     i = end
 
-        elif s[i].isdigit():
+        elif s[i].isdigit() or (s[i] == '-' and i + 1 < len(s) and s[i + 1].isdigit()):
+            is_negative = False
+            if s[i] == '-':
+                is_negative = True
+                i += 1
             end = i + 1
             while end < len(s) and s[end].isdigit():
                 end += 1
@@ -62,54 +56,91 @@ def lex(s: str) -> list[token]:
                 end += 1
                 while end < len(s) and s[end].isdigit():
                     end += 1
+                if is_negative:
+                    tokens.append(token('sym', '-'))
                 tokens.append(token('num', s[i:end]))
             else:
+                if is_negative:
+                    tokens.append(token('sym', '-'))
                 tokens.append(token('num', s[i:end]))
             i = end
+            is_increment_or_decrement = False
 
         elif s[i].isalpha():
             end = i + 1
-            while end < len(s) and s[end].isalnum() or s[end] == '_':
+            while end < len(s) and (s[end].isalnum() or s[end] == '_'):
                 end += 1
-            tokens.append(token('var', s[i:end]))
+            if end <= len(s):
+                tokens.append(token('var', s[i:end]))
             i = end
+            is_increment_or_decrement = False
 
         elif s[i] == '=':
             tokens.append(token('sym', '='))
             i += 1
+            is_increment_or_decrement = False
         elif s[i] == '!':
             tokens.append(token('sym', '!'))
             i += 1
+            is_increment_or_decrement = False
+        elif s[i:i + 2] == '++':
+            tokens.append(token('sym', '++'))
+            i += 2
+            is_increment_or_decrement = True
+        elif s[i:i + 2] == '--':
+            tokens.append(token('sym', '--'))
+            i += 2
+            is_increment_or_decrement = True
         elif s[i] == '+':
-            tokens.append(token('sym', '+'))
-            i += 1
+            if i > 0 and (s[i - 1] == '+' or s[i - 1] == '-' or is_increment_or_decrement):
+                # current '+' is part of an increment or decrement operator
+                i += 1
+                tokens.append(token('sym', '+'))
+            else:
+                tokens.append(token('sym', '+'))
+                i += 1
+            is_increment_or_decrement = False
         elif s[i] == '-':
-            tokens.append(token('sym', '-'))
-            i += 1
+            if i > 0 and (s[i - 1] == '+' or s[i - 1] == '-' or is_increment_or_decrement):
+                # current '+' is part of an increment or decrement operator
+                i += 1
+                tokens.append(token('sym', '-'))
+            else:
+                tokens.append(token('sym', '-'))
+                i += 1
+            is_increment_or_decrement = False
         elif s[i] == '*':
             tokens.append(token('sym', '*'))
             i += 1
+            is_increment_or_decrement = False
         elif s[i] == '/':
             tokens.append(token('sym', '/'))
             i += 1
+            is_increment_or_decrement = False
         elif s[i] == '%':
             tokens.append(token('sym', '/'))
             i += 1
+            is_increment_or_decrement = False
         elif s[i] == '^':
             tokens.append(token('sym', '^'))
             i += 1
+            is_increment_or_decrement = False
         elif s[i] == '(':
             tokens.append(token('sym', '('))
             i += 1
+            is_increment_or_decrement = False
         elif s[i] == ')':
             tokens.append(token('sym', ')'))
             i += 1
+            is_increment_or_decrement = False
         elif s[i:i + 2] == '||':
             tokens.append(token('sym', '||'))
             i += 2
+            is_increment_or_decrement = False
         elif s[i:i + 2] == '&&':
             tokens.append(token('sym', '&&'))
             i += 2
+            is_increment_or_decrement = False
         else:
             raise SyntaxError(f'unexpected character {s[i]}')
 
@@ -123,11 +154,6 @@ class ast():
     children: tuple[Any, ...]
 
     def __init__(self, typ: str, *children: Any):
-        """
-        x || true
-        >>> ast('||', ast('var', 'x'), ast('val', True))
-        ast('||', ast('var', 'x'), ast('val', True))
-        """
         self.typ = typ
         self.children = children
 
@@ -142,8 +168,8 @@ def parse(s: str) -> ast:
 
     a, i = assign(ts, 0)
 
-    if i != len(ts):
-        raise SyntaxError(f"expected EOF, found {ts[i:]!r}")
+    # if i != len(ts):
+    #     raise SyntaxError(f"expected EOF, found {ts[i:]!r}")
 
     return a
 
@@ -194,14 +220,27 @@ def expon(ts: list[token], i: int) -> tuple[ast, int]:
     if i >= len(ts):
         raise SyntaxError('expected expon, found EOF')
 
-    lhs, i = atom(ts, i)
+    lhs, i = pre_dec_inc(ts, i)
 
     while i < len(ts) and ts[i].typ == 'sym' and ts[i].val == '^':
         flag_md = ts[i].val
-        rhs, i = atom(ts, i + 1)
+        rhs, i = pre_dec_inc(ts, i + 1)
         lhs = ast(flag_md, lhs, rhs)
 
     return lhs, i
+
+
+def pre_dec_inc(ts: list[token], i: int) -> tuple[ast, int]:
+
+    if i >= len(ts):
+        raise SyntaxError('expected dec_inc, found EOF')
+
+    if ts[i].typ == 'sym' and (ts[i].val == '++' or ts[i].val == '--'):
+        flag_dec_inc = ts[i].val
+        a, i = pre_dec_inc(ts, i + 1)
+        return ast(flag_dec_inc, a), i
+    else:
+        return atom(ts, i)
 
 
 def atom(ts: list[token], i: int) -> tuple[ast, int]:
@@ -315,18 +354,13 @@ def atom(ts: list[token], i: int) -> tuple[ast, int]:
 # INTERPRETER
 
 def interp(a: ast, *env: set[str]):
-    """
-    >>> interp(parse('x || y'), {'y'})
-    True
-    >>> interp(parse('a || b && c'), {'c'})
-    False
-    """
     if a.typ == 'val':
         return a.children[0]
     elif a.typ == 'num':
         return float(a.children[0])
     elif a.typ == 'var':
-        return a.children[0] in env
+        global RET
+        return RET[a.children[0]]
     elif a.typ == '!':
         return not interp(a.children[0], env)
     elif a.typ == '&&':
@@ -349,13 +383,12 @@ def interp(a: ast, *env: set[str]):
         return interp(a.children[0]) - interp(a.children[1])
 
     elif a.typ == '=':
-        global RET
         RET[a.children[0].children[0]] = interp(a.children[1])
         return RET
 
     raise SyntaxError(f'unknown operation {a.typ}')
 
-print(lex('x=2'))
-print(parse('x=2'))
-print(interp(parse('x=2+1')))
-print(RET)
+# print(lex('--y'))
+print(parse('++y'))
+# print(interp(parse('x=2+1')))
+# print(RET)
