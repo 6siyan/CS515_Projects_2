@@ -168,13 +168,14 @@ def parse(s: str) -> ast:
     ts = lex(s)
 
     # a, i = disj(ts, 0)
-
-    a, i = assign(ts, 0)
+    try:
+        a, i = assign(ts, 0)
+        return a
+    except:
+        print('parse error')
 
     # if i != len(ts):
     #     raise SyntaxError(f"expected EOF, found {ts[i:]!r}")
-
-    return a
 
 
 def assign(ts: list[token], i: int) -> tuple[ast, int]:
@@ -222,7 +223,6 @@ def mult_div_mod(ts: list[token], i: int) -> tuple[ast, int]:
 def expon(ts: list[token], i: int) -> tuple[ast, int]:
     if i >= len(ts):
         raise SyntaxError('expected expon, found EOF')
-
     lhs, i = dec_inc(ts, i)
 
     while i < len(ts) and ts[i].typ == 'sym' and ts[i].val == '^':
@@ -238,7 +238,7 @@ def dec_inc(ts: list[token], i: int) -> tuple[ast, int]:
     if i >= len(ts):
         raise SyntaxError('expected dec_inc, found EOF')
 
-    if i < len(ts) and (ts[i].typ == 'var' or ts[i].typ == 'num'):
+    if i < len(ts) and (ts[i].typ == 'var' or ts[i].typ == 'num' or ts[i].typ == 'kw' or (ts[i].typ == 'sym' and ts[i].val == ')') or (ts[i].typ == 'sym' and ts[i].val == '(')):
         lhs, i = atom(ts, i)
 
     if i < len(ts) and ts[i].typ == 'sym' and (ts[i].val == '++' or ts[i].val == '--'):
@@ -263,7 +263,7 @@ def atom(ts: list[token], i: int) -> tuple[ast, int]:
     elif t.typ == 'kw' and t.val in ['true', 'false']:
         return ast('val', t.val == 'true'), i + 1
     elif t.typ == 'sym' and t.val == '(':
-        a, i = add_sub(ts, i + 1)
+        a, i = assign(ts, i + 1)
 
         if i >= len(ts):
             raise SyntaxError(f'expected right paren, got EOF')
@@ -366,78 +366,80 @@ def atom(ts: list[token], i: int) -> tuple[ast, int]:
 def interp(a: ast, *env: set[str]):
     global RET
     global RET_temp
-    if a.typ == 'val':
-        return a.children[0]
-    elif a.typ == 'num':
-        return float(a.children[0])
-    elif a.typ == 'var':
-        return RET[a.children[0]]
-    elif a.typ == '!':
-        return not interp(a.children[0], env)
-    elif a.typ == '&&':
-        return interp(a.children[0], env) and interp(a.children[1], env)
-    elif a.typ == '||':
-        return interp(a.children[0], env) or interp(a.children[1], env)
-    elif a.typ == '^':
-        return interp(a.children[0]) ** interp(a.children[1])
-    elif a.typ == '*':
-        return interp(a.children[0]) * interp(a.children[1])
-    elif a.typ == '/':
-        return interp(a.children[0]) / interp(a.children[1])
-    elif a.typ == '%':
-        return interp(a.children[0]) % interp(a.children[1])
-    elif a.typ == '+':
-        return interp(a.children[0]) + interp(a.children[1])
-    elif a.typ == '-':
-        if len(a.children) == 1:
-            return interp(a.children[0])
-        return interp(a.children[0]) - interp(a.children[1])
+    try:
+        if a.typ == 'val':
+            return a.children[0]
+        elif a.typ == 'num':
+            return float(a.children[0])
+        elif a.typ == 'var':
+            return RET[a.children[0]]
+        elif a.typ == '!':
+            return not interp(a.children[0], env)
+        elif a.typ == '&&':
+            return interp(a.children[0], env) and interp(a.children[1], env)
+        elif a.typ == '||':
+            return interp(a.children[0], env) or interp(a.children[1], env)
+        elif a.typ == '^':
+            return interp(a.children[0]) ** interp(a.children[1])
+        elif a.typ == '*':
+            return interp(a.children[0]) * interp(a.children[1])
+        elif a.typ == '/':
+            return interp(a.children[0]) / interp(a.children[1])
+        elif a.typ == '%':
+            return interp(a.children[0]) % interp(a.children[1])
+        elif a.typ == '+':
+            return interp(a.children[0]) + interp(a.children[1])
+        elif a.typ == '-':
+            if len(a.children) == 1:
+                return interp(a.children[0])
+            return interp(a.children[0]) - interp(a.children[1])
 
-    elif a.typ == '=':
-        RET[a.children[0].children[0]] = interp(a.children[1])
-        return RET
-    elif a.typ == '++p':
-        RET[a.children[0].children[0]] = RET[a.children[0].children[0]] + 1
-        return RET
-    elif a.typ == 'p++':
-        RET_temp = copy.deepcopy(RET)
-        RET[a.children[0].children[0]] = RET[a.children[0].children[0]] + 1
-        return RET_temp[a.children[0].children[0]]
-    elif a.typ == '--p':
-        RET[a.children[0].children[0]] = RET[a.children[0].children[0]] - 1
-        return RET
-    elif a.typ == 'p--':
-        RET_temp = copy.deepcopy(RET)
-        RET[a.children[0].children[0]] = RET[a.children[0].children[0]] - 1
-        return RET_temp[a.children[0].children[0]]
+        elif a.typ == '=':
+            RET[a.children[0].children[0]] = interp(a.children[1])
+            return RET
+        elif a.typ == '++p':
+            RET[a.children[0].children[0]] = RET[a.children[0].children[0]] + 1
+            return RET
+        elif a.typ == 'p++':
+            RET_temp = copy.deepcopy(RET)
+            RET[a.children[0].children[0]] = RET[a.children[0].children[0]] + 1
+            return RET_temp[a.children[0].children[0]]
+        elif a.typ == '--p':
+            RET[a.children[0].children[0]] = RET[a.children[0].children[0]] - 1
+            return RET
+        elif a.typ == 'p--':
+            RET_temp = copy.deepcopy(RET)
+            RET[a.children[0].children[0]] = RET[a.children[0].children[0]] - 1
+            return RET_temp[a.children[0].children[0]]
 
-    raise SyntaxError(f'unknown operation {a.typ}')
+        raise SyntaxError(f'unknown operation {a.typ}')
+    except:
+        pass
 
 
-# def main():
-#     if len(sys.argv) < 2:
-#         print('Usage: python script.py filename')
-#         sys.exit()
-#
-#     filename = sys.argv[1]
-#     print_lines = []
-#
-#     with open(filename, 'r') as f:
-#         global RET
-#         for line in f:
-#             if line.startswith('print'):
-#                 var_names = [var.strip() for var in line[6:].split(',')]
-#                 for name in var_names:
-#                     temp = interp(parse(name))
-#                     print_lines.append(temp)
-#                 print(print_lines)
-#             else:
-#                 interp(parse(line.strip()))
-#
-#
-#
-# if __name__ == '__main__':
-#     main()
+def main():
+    if len(sys.argv) < 2:
+        print('Usage: python script.py filename')
+        sys.exit()
+
+    filename = sys.argv[1]
+
+    with open(filename, 'r') as f:
+        global RET
+        for line in f:
+            if line.startswith('print'):
+                print_lines = []
+                var_names = [var.strip() for var in line[6:].split(',')]
+                for name in var_names:
+                    temp = interp(parse(name))
+                    print_lines.append(temp)
+                print(' '.join(str(x) for x in print_lines))
+            else:
+                interp(parse(line.strip()))
+
+
+if __name__ == '__main__':
+    main()
 
 # x  = 3
 # y  = 5
@@ -448,8 +450,7 @@ def interp(a: ast, *env: set[str]):
 # print(interp(parse('x  = 3')))
 # print(interp(parse('y  = 5')))
 # print(interp(parse('z  = 2 + x * y')))
-print(lex('(2 + x) * y'))
-print(parse('(2 + x) * y'))
+# print(lex('(2 + x) * y'))
 # print(interp(parse('(2 + x) * y')))
 # print(RET)
 # print(interp(parse('y++')))
