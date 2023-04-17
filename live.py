@@ -1,6 +1,8 @@
-# LEXING
 import copy
+import sys
 from typing import Any
+
+# LEXING
 
 RET = {}
 RET_temp = {}
@@ -221,17 +223,17 @@ def expon(ts: list[token], i: int) -> tuple[ast, int]:
     if i >= len(ts):
         raise SyntaxError('expected expon, found EOF')
 
-    lhs, i = pre_dec_inc(ts, i)
+    lhs, i = dec_inc(ts, i)
 
     while i < len(ts) and ts[i].typ == 'sym' and ts[i].val == '^':
         flag_md = ts[i].val
-        rhs, i = pre_dec_inc(ts, i + 1)
+        rhs, i = dec_inc(ts, i + 1)
         lhs = ast(flag_md, lhs, rhs)
 
     return lhs, i
 
 
-def pre_dec_inc(ts: list[token], i: int) -> tuple[ast, int]:
+def dec_inc(ts: list[token], i: int) -> tuple[ast, int]:
 
     if i >= len(ts):
         raise SyntaxError('expected dec_inc, found EOF')
@@ -412,8 +414,44 @@ def interp(a: ast, *env: set[str]):
     raise SyntaxError(f'unknown operation {a.typ}')
 
 
-print(interp(parse('y = 1')))
-print(RET)
-print(interp(parse('y++')))
-print(RET_temp)
-print(RET)
+# def main():
+#     if len(sys.argv) < 2:
+#         print('Usage: python script.py filename')
+#         sys.exit()
+#
+#     filename = sys.argv[1]
+#     print_lines = []
+#
+#     with open(filename, 'r') as f:
+#         global RET
+#         for line in f:
+#             if line.startswith('print'):
+#                 var_names = [var.strip() for var in line[6:].split(',')]
+#                 for name in var_names:
+#                     temp = interp(parse(name))
+#                     print_lines.append(temp)
+#                 print(print_lines)
+#             else:
+#                 interp(parse(line.strip()))
+#
+#
+#
+# if __name__ == '__main__':
+#     main()
+
+# x  = 3
+# y  = 5
+# z  = 2 + x * y
+# z2 = (2 + x) * y
+# print x, y, z, z2
+
+# print(interp(parse('x  = 3')))
+# print(interp(parse('y  = 5')))
+# print(interp(parse('z  = 2 + x * y')))
+print(lex('(2 + x) * y'))
+print(parse('(2 + x) * y'))
+# print(interp(parse('(2 + x) * y')))
+# print(RET)
+# print(interp(parse('y++')))
+# print(RET_temp)
+# print(RET)
