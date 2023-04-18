@@ -197,13 +197,10 @@ class ast():
 
 
 def parse(s: str) -> ast:
-    ts = lex(s)
 
-    # try:
+    ts = lex(s)
     a, i = assign(ts, 0)
     return a
-    # except:
-    print('parse error')
 
 
 def assign(ts: list[token], i: int) -> tuple[ast, int]:
@@ -321,14 +318,51 @@ def mult_div_mod(ts: list[token], i: int) -> tuple[ast, int]:
     return lhs, i
 
 
+# def expon(ts: list[token], i: int) -> tuple[ast, int]:
+#     if i >= len(ts):
+#         raise SyntaxError('expected expon, found EOF')
+#     lhs, i = dec_inc(ts, i)
+#
+#     while i < len(ts) and ts[i].typ == 'sym' and ts[i].val == '^':
+#         flag_md = ts[i].val
+#         rhs, i = dec_inc(ts, i + 1)
+#         lhs = ast(flag_md, lhs, rhs)
+#
+#     return lhs, i
+
+
+# def expon(ts: list[token], i: int) -> tuple[ast, int]:
+#     if i >= len(ts):
+#         raise SyntaxError('expected expon, found EOF')
+#     lhs, i = dec_inc(ts, i)
+#
+#     while i < len(ts) and ts[i].typ == 'sym' and ts[i].val == '^':
+#         i += 1
+#         if i >= len(ts) or ts[i].typ != 'num':
+#             raise SyntaxError('expected number after ^')
+#         rhs = ast('num', ts[i].val)
+#         i += 1
+#
+#         while i < len(ts) and ts[i].typ == 'sym' and ts[i].val == '^':
+#             i += 1
+#             if i >= len(ts) or ts[i].typ != 'num':
+#                 raise SyntaxError('expected number after ^')
+#             rhs = ast('^', rhs, ast('num', ts[i].val))
+#             i += 1
+#
+#         lhs = ast('^', lhs, rhs)
+#
+#     return lhs, i
+
+
 def expon(ts: list[token], i: int) -> tuple[ast, int]:
     if i >= len(ts):
         raise SyntaxError('expected expon, found EOF')
     lhs, i = dec_inc(ts, i)
 
-    while i < len(ts) and ts[i].typ == 'sym' and ts[i].val == '^':
+    if i < len(ts) and ts[i].typ == 'sym' and ts[i].val == '^':
         flag_md = ts[i].val
-        rhs, i = dec_inc(ts, i + 1)
+        rhs, i = expon(ts, i + 1)
         lhs = ast(flag_md, lhs, rhs)
 
     return lhs, i
@@ -467,90 +501,122 @@ def atom(ts: list[token], i: int) -> tuple[ast, int]:
 def interp(a: ast):
     global RET
     global RET_temp
-    # try:
-    if a.typ == 'val':
-        return a.children[0]
-    elif a.typ == 'num':
-        return float(a.children[0])
-    elif a.typ == 'var':
-        return RET[a.children[0]]
+    try:
+        if a.typ == 'val':
+            return a.children[0]
+        elif a.typ == 'num':
+            return float(a.children[0])
+        elif a.typ == 'var':
+            if a.children[0] in RET:
+                return RET[a.children[0]]
+            else:
+                RET[a.children[0]] = 0.0
+                return RET[a.children[0]]
 
-    elif a.typ == '!':
-        RET[a.children[0].children[0]] = not RET[a.children[0].children[0]]
-        return RET
-    elif a.typ == '&&':
-        return int(bool(interp(a.children[0])) and bool(interp(a.children[1])))
-    elif a.typ == '||':
-        return int(bool(interp(a.children[0])) or bool(interp(a.children[1])))
+        elif a.typ == '!':
+            RET[a.children[0].children[0]] = not RET[a.children[0].children[0]]
+            return RET
+        elif a.typ == '&&':
+            return int(bool(interp(a.children[0])) and bool(interp(a.children[1])))
+        elif a.typ == '||':
+            return int(bool(interp(a.children[0])) or bool(interp(a.children[1])))
 
-    elif a.typ == '^':
-        return interp(a.children[0]) ** interp(a.children[1])
-    elif a.typ == '*':
-        return interp(a.children[0]) * interp(a.children[1])
-    elif a.typ == '/':
-        return interp(a.children[0]) / interp(a.children[1])
-    elif a.typ == '%':
-        return interp(a.children[0]) % interp(a.children[1])
-    elif a.typ == '+':
-        return interp(a.children[0]) + interp(a.children[1])
-    elif a.typ == '-':
-        if len(a.children) == 1:
-            return interp(a.children[0])
-        return interp(a.children[0]) - interp(a.children[1])
+        elif a.typ == '^':
+            return interp(a.children[0]) ** interp(a.children[1])
+        elif a.typ == '*':
+            return interp(a.children[0]) * interp(a.children[1])
+        elif a.typ == '/':
+            try:
+                return interp(a.children[0]) / interp(a.children[1])
+            except:
+                print('divide by zero')
+        elif a.typ == '%':
+            return interp(a.children[0]) % interp(a.children[1])
+        elif a.typ == '+':
+            return interp(a.children[0]) + interp(a.children[1])
+        elif a.typ == '-':
+            if len(a.children) == 1:
+                return interp(a.children[0])
+            return interp(a.children[0]) - interp(a.children[1])
 
-    elif a.typ == '>':
-        return interp(a.children[0]) > interp(a.children[1])
-    elif a.typ == '<':
-        return interp(a.children[0]) < interp(a.children[1])
-    elif a.typ == '==':
-        return interp(a.children[0]) == interp(a.children[1])
-    elif a.typ == '>=':
-        return interp(a.children[0]) >= interp(a.children[1])
-    elif a.typ == '<=':
-        return interp(a.children[0]) <= interp(a.children[1])
-    elif a.typ == '!=':
-        return interp(a.children[0]) != interp(a.children[1])
+        elif a.typ == '>':
+            return interp(a.children[0]) > interp(a.children[1])
+        elif a.typ == '<':
+            return interp(a.children[0]) < interp(a.children[1])
+        elif a.typ == '==':
+            return interp(a.children[0]) == interp(a.children[1])
+        elif a.typ == '>=':
+            return interp(a.children[0]) >= interp(a.children[1])
+        elif a.typ == '<=':
+            return interp(a.children[0]) <= interp(a.children[1])
+        elif a.typ == '!=':
+            return interp(a.children[0]) != interp(a.children[1])
 
-    elif a.typ == '=':
-        RET[a.children[0].children[0]] = interp(a.children[1])
-        return RET
-    elif a.typ == '+=':
-        RET[a.children[0].children[0]] += interp(a.children[1])
-        return RET
-    elif a.typ == '-=':
-        RET[a.children[0].children[0]] -= interp(a.children[1])
-        return RET
-    elif a.typ == '*=':
-        RET[a.children[0].children[0]] *= interp(a.children[1])
-        return RET
-    elif a.typ == '/=':
-        RET[a.children[0].children[0]] /= interp(a.children[1])
-        return RET
-    elif a.typ == '%=':
-        RET[a.children[0].children[0]] %= interp(a.children[1])
-        return RET
-    elif a.typ == '^=':
-        RET[a.children[0].children[0]] **= interp(a.children[1])
-        return RET
+        elif a.typ == '=':
+            RET[a.children[0].children[0]] = interp(a.children[1])
+            return RET[a.children[0].children[0]]
+        elif a.typ == '+=':
+            RET[a.children[0].children[0]] += interp(a.children[1])
+            return RET[a.children[0].children[0]]
+        elif a.typ == '-=':
+            RET[a.children[0].children[0]] -= interp(a.children[1])
+            return RET[a.children[0].children[0]]
+        elif a.typ == '*=':
+            RET[a.children[0].children[0]] *= interp(a.children[1])
+            return RET[a.children[0].children[0]]
+        elif a.typ == '/=':
+            try:
+                RET[a.children[0].children[0]] /= interp(a.children[1])
+                return RET[a.children[0].children[0]]
+            except:
+                print('divide by zero')
+        elif a.typ == '%=':
+            RET[a.children[0].children[0]] %= interp(a.children[1])
+            return RET[a.children[0].children[0]]
+        elif a.typ == '^=':
+            RET[a.children[0].children[0]] **= interp(a.children[1])
+            return RET[a.children[0].children[0]]
 
-    elif a.typ == '++p':
-        RET[a.children[0].children[0]] = RET[a.children[0].children[0]] + 1
-        return RET
-    elif a.typ == 'p++':
-        RET_temp = copy.deepcopy(RET)
-        RET[a.children[0].children[0]] = RET[a.children[0].children[0]] + 1
-        return RET_temp[a.children[0].children[0]]
-    elif a.typ == '--p':
-        RET[a.children[0].children[0]] = RET[a.children[0].children[0]] - 1
-        return RET
-    elif a.typ == 'p--':
-        RET_temp = copy.deepcopy(RET)
-        RET[a.children[0].children[0]] = RET[a.children[0].children[0]] - 1
-        return RET_temp[a.children[0].children[0]]
+        elif a.typ == '++p':
+            if a.children[0].children[0] in RET:
+                RET[a.children[0].children[0]] = RET[a.children[0].children[0]] + 1
+                return RET[a.children[0].children[0]]
+            else:
+                RET[a.children[0].children[0]] = 0.0
+                RET[a.children[0].children[0]] = RET[a.children[0].children[0]] + 1
+                return RET[a.children[0].children[0]]
+        elif a.typ == 'p++':
+            if a.children[0].children[0] in RET:
+                RET_temp = copy.deepcopy(RET)
+                RET[a.children[0].children[0]] = RET[a.children[0].children[0]] + 1
+                return RET_temp[a.children[0].children[0]]
+            else:
+                RET[a.children[0].children[0]] = 0.0
+                RET_temp = copy.deepcopy(RET)
+                RET[a.children[0].children[0]] = RET[a.children[0].children[0]] + 1
+                return RET_temp[a.children[0].children[0]]
+        elif a.typ == '--p':
+            if a.children[0].children[0] in RET:
+                RET[a.children[0].children[0]] = RET[a.children[0].children[0]] - 1
+                return RET[a.children[0].children[0]]
+            else:
+                RET[a.children[0].children[0]] = 0.0
+                RET[a.children[0].children[0]] = RET[a.children[0].children[0]] - 1
+                return RET[a.children[0].children[0]]
+        elif a.typ == 'p--':
+            if a.children[0].children[0] in RET:
+                RET_temp = copy.deepcopy(RET)
+                RET[a.children[0].children[0]] = RET[a.children[0].children[0]] - 1
+                return RET_temp[a.children[0].children[0]]
+            else:
+                RET[a.children[0].children[0]] = 0.0
+                RET_temp = copy.deepcopy(RET)
+                RET[a.children[0].children[0]] = RET[a.children[0].children[0]] - 1
+                return RET_temp[a.children[0].children[0]]
 
-    raise SyntaxError(f'unknown operation {a.typ}')
-    # except:
-    #     pass
+        raise SyntaxError(f'unknown operation {a.typ}')
+    except:
+        pass
 
 
 def main():
@@ -563,7 +629,7 @@ def main():
     #with open(filename, "r") as file:
     #    text = file.read()
     text = sys.stdin.read()
-    #print(text)
+    # print(text)
     start_pos = text.find("/*")
     while start_pos != -1:
         end_pos = text.find("*/", start_pos + 2)
@@ -586,10 +652,16 @@ def main():
         if line.startswith('print'):
             print_lines = []
             var_names = [var.strip() for var in line[6:].split(',')]
-            for name in var_names:
-                temp = interp(parse(name))
-                print_lines.append(temp)
-            print(' '.join(str(x) for x in print_lines))
+            try:
+                for name in var_names:
+                    # print(lex(name))
+                    # print(parse(name))
+                    temp = interp(parse(name))
+                    print_lines.append(temp)
+                if temp != None:
+                    print(' '.join(str(x) for x in print_lines))
+            except:
+                print('parse error')
         else:
             interp(parse(line.strip()))
 

@@ -9,20 +9,16 @@ Siyan Liu, sliu112@stevens.edu
 https://github.com/6siyan/CS515_Projects_2
 
 
-### an estimate of how many hours you spent on the project  
+### an estimate of how many hours you spent on the project
+About 30 hours by two perple  
 ### a description of how you tested your code  
-### any bugs or issues you could not resolve  
+We use doctest to test our code.  
+### any bugs or issues you could not resolve
+There may be some prioritization issues.  
 ### an example of a difficult issue or bug and how you resolved  
+We spent about 8 hours on the ++ and -- issue. This was the hardest part of the whole program.  
 ### a list of the four extensions you’ve chosen to implement  
-
-
-### About parser
-use AST(abstract syntax tree)
-    define this a like:
-    lexer and a parser(the first and second model)
-then a interpeter(the tired model)
-then value
-
-### Lexer
-3 tpyes of token: variabel, keyword, operation.  
-Can use a class or dict or tuple to define.
+1. Op-equals  
+2. Relational operations  
+3. Boolean operations  
+4. Comments
