@@ -554,14 +554,16 @@ def interp(a: ast):
 
 
 def main():
-    if len(sys.argv) < 2:
-        print('Usage: python script.py filename')
-        sys.exit()
+    #if len(sys.argv) < 2:
+    #    print('Usage: python script.py filename')
+    #    sys.exit()
 
-    filename = sys.argv[1]
+    #filename = sys.argv[1]
 
-    with open(filename, "r") as file:
-        text = file.read()
+    #with open(filename, "r") as file:
+    #    text = file.read()
+    text = sys.stdin.read()
+    #print(text)
     start_pos = text.find("/*")
     while start_pos != -1:
         end_pos = text.find("*/", start_pos + 2)
