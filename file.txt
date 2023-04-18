@@ -1,5 +1,8 @@
-x  = 3
-y  = 5
-z  = 2 + x * y
-z2 = (2 + x) * y
-print x, y, z, z2
+x = 1
+/*
+x = 2
+y = 3
+*/
+y = 4
+# print 0
+print x, y
