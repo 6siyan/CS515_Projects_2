@@ -1,8 +1,2 @@
-x = 1
-/*
 x = 2
-y = 3
-*/
-y = 4
-# print 0
-print x, y
+print x ^= 3

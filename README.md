@@ -21,6 +21,4 @@ We spent about 8 hours on the ++ and -- issue. This was the hardest part of the 
 1. Op-equals  
 2. Relational operations  
 3. Boolean operations  
-4. Comments  
-
-
+4. Comments
