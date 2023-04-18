@@ -184,6 +184,7 @@ def lex(s: str) -> list[token]:
 
 # PARSING
 
+
 class ast():
     typ: str
     children: tuple[Any, ...]
@@ -259,35 +260,6 @@ def neg(ts: list[token], i: int) -> tuple[ast, int]:
         return ast('!', a), i
     else:
         return atom(ts, i)
-#
-# def atom(ts: list[token], i: int) -> tuple[ast, int]:
-#     """
-#     >>> parse('x')
-#     ast('var', 'x')
-#     >>> parse('true')
-#     ast('val', True)
-#     >>> parse('(((false)))')
-#     ast('val', False)
-#     """
-#
-#     t = ts[i]
-#
-#     if t.typ == 'var':
-#         return ast('var', t.val), i+1
-#     elif t.typ == 'kw' and t.val in ['true', 'false']:
-#         return ast('val', t.val == 'true'), i + 1
-#     elif t.typ == 'sym' and t.val == '(':
-#         a, i = disj(ts, i + 1)
-#
-#         if i >= len(ts):
-#             raise SyntaxError(f'expected right paren, got EOF')
-#
-#         if not (ts[i].typ == 'sym' and ts[i].val == ')'):
-#             raise SyntaxError(f'expected right paren, got "{ts[i]}"')
-#
-#         return a, i + 1
-#
-#     raise SyntaxError(f'expected atom, got "{ts[i]}"')
 
 
 def add_sub(ts: list[token], i: int) -> tuple[ast, int]:
@@ -316,43 +288,6 @@ def mult_div_mod(ts: list[token], i: int) -> tuple[ast, int]:
         lhs = ast(flag_md, lhs, rhs)
 
     return lhs, i
-
-
-# def expon(ts: list[token], i: int) -> tuple[ast, int]:
-#     if i >= len(ts):
-#         raise SyntaxError('expected expon, found EOF')
-#     lhs, i = dec_inc(ts, i)
-#
-#     while i < len(ts) and ts[i].typ == 'sym' and ts[i].val == '^':
-#         flag_md = ts[i].val
-#         rhs, i = dec_inc(ts, i + 1)
-#         lhs = ast(flag_md, lhs, rhs)
-#
-#     return lhs, i
-
-
-# def expon(ts: list[token], i: int) -> tuple[ast, int]:
-#     if i >= len(ts):
-#         raise SyntaxError('expected expon, found EOF')
-#     lhs, i = dec_inc(ts, i)
-#
-#     while i < len(ts) and ts[i].typ == 'sym' and ts[i].val == '^':
-#         i += 1
-#         if i >= len(ts) or ts[i].typ != 'num':
-#             raise SyntaxError('expected number after ^')
-#         rhs = ast('num', ts[i].val)
-#         i += 1
-#
-#         while i < len(ts) and ts[i].typ == 'sym' and ts[i].val == '^':
-#             i += 1
-#             if i >= len(ts) or ts[i].typ != 'num':
-#                 raise SyntaxError('expected number after ^')
-#             rhs = ast('^', rhs, ast('num', ts[i].val))
-#             i += 1
-#
-#         lhs = ast('^', lhs, rhs)
-#
-#     return lhs, i
 
 
 def expon(ts: list[token], i: int) -> tuple[ast, int]:
@@ -414,89 +349,8 @@ def atom(ts: list[token], i: int) -> tuple[ast, int]:
     raise SyntaxError(f'expected atom, got "{ts[i]}"')
 
 
-# def disj(ts: list[token], i: int) -> tuple[ast, int]:
-#     """
-#     >>> parse('true || false')
-#     ast('||', ast('val', True), ast('val', False))
-#     """
-#     if i >= len(ts):
-#         raise SyntaxError('expected conjunction, found EOF')
-#
-#     lhs, i = conj(ts, i)
-#
-#     while i < len(ts) and ts[i].typ == 'sym' and ts[i].val == '||':
-#         rhs, i = conj(ts, i+1)
-#         lhs = ast('||', lhs, rhs)
-#
-#     return lhs, i
-#
-# def conj(ts: list[token], i: int) -> tuple[ast, int]:
-#     """
-#     >>> parse('true && false')
-#     ast('&&', ast('val', True), ast('val', False))
-#     >>> parse('!x && (a && !false)')
-#     ast('&&', ast('!', ast('var', 'x')), ast('&&', ast('var', 'a'), ast('!', ast('val', False))))
-#     >>> parse('!x && a && !false')
-#     ast('&&', ast('&&', ast('!', ast('var', 'x')), ast('var', 'a')), ast('!', ast('val', False)))
-#     """
-#     if i >= len(ts):
-#         raise SyntaxError('expected conjunction, found EOF')
-#
-#     lhs, i = neg(ts, i)
-#
-#     while i < len(ts) and ts[i].typ == 'sym' and ts[i].val == '&&':
-#         rhs, i = neg(ts, i+1)
-#         lhs = ast('&&', lhs, rhs)
-#
-#     return lhs, i
-#
-# def neg(ts: list[token], i: int) -> tuple[ast, int]:
-#     """
-#     >>> parse('! true')
-#     ast('!', ast('val', True))
-#     >>> parse('!! true')
-#     ast('!', ast('!', ast('val', True)))
-#     """
-#
-#     if i >= len(ts):
-#         raise SyntaxError('expected negation, found EOF')
-#
-#     if ts[i].typ == 'sym' and ts[i].val == '!':
-#         a, i = neg(ts, i+1)
-#         return ast('!', a), i
-#     else:
-#         return atom(ts, i)
-#
-# def atom(ts: list[token], i: int) -> tuple[ast, int]:
-#     """
-#     >>> parse('x')
-#     ast('var', 'x')
-#     >>> parse('true')
-#     ast('val', True)
-#     >>> parse('(((false)))')
-#     ast('val', False)
-#     """
-#
-#     t = ts[i]
-#
-#     if t.typ == 'var':
-#         return ast('var', t.val), i+1
-#     elif t.typ == 'kw' and t.val in ['true', 'false']:
-#         return ast('val', t.val == 'true'), i + 1
-#     elif t.typ == 'sym' and t.val == '(':
-#         a, i = disj(ts, i + 1)
-#
-#         if i >= len(ts):
-#             raise SyntaxError(f'expected right paren, got EOF')
-#
-#         if not (ts[i].typ == 'sym' and ts[i].val == ')'):
-#             raise SyntaxError(f'expected right paren, got "{ts[i]}"')
-#
-#         return a, i + 1
-#
-#     raise SyntaxError(f'expected atom, got "{ts[i]}"')
-
 # INTERPRETER
+
 
 def interp(a: ast):
     global RET
@@ -620,16 +474,7 @@ def interp(a: ast):
 
 
 def main():
-    #if len(sys.argv) < 2:
-    #    print('Usage: python script.py filename')
-    #    sys.exit()
-
-    #filename = sys.argv[1]
-
-    #with open(filename, "r") as file:
-    #    text = file.read()
     text = sys.stdin.read()
-    # print(text)
     start_pos = text.find("/*")
     while start_pos != -1:
         end_pos = text.find("*/", start_pos + 2)
@@ -654,8 +499,6 @@ def main():
             var_names = [var.strip() for var in line[6:].split(',')]
             try:
                 for name in var_names:
-                    # print(lex(name))
-                    # print(parse(name))
                     temp = interp(parse(name))
                     print_lines.append(temp)
                 if temp != None:
@@ -668,9 +511,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-# print(lex('print x'))
-# print(parse('print x'))
-# print(interp(parse('z  = 2 + x * y')))
-
