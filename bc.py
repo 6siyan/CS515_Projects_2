@@ -554,47 +554,49 @@ def interp(a: ast):
 
 
 def main():
-    # if len(sys.argv) < 2:
-    #     print('Usage: python script.py filename')
-    #     sys.exit()
-    #
-    # filename = sys.argv[1]
+    if len(sys.argv) < 2:
+        print('Usage: python script.py filename')
+        sys.exit()
 
-    with open('file.txt', 'r') as f:
-        global RET
-        for line in f:
-            if line.startswith('print'):
-                print_lines = []
-                var_names = [var.strip() for var in line[6:].split(',')]
-                for name in var_names:
-                    temp = interp(parse(name))
-                    print_lines.append(temp)
-                print(' '.join(str(x) for x in print_lines))
-            else:
-                interp(parse(line.strip()))
+    filename = sys.argv[1]
+
+    with open(filename, "r") as file:
+        text = file.read()
+    start_pos = text.find("/*")
+    while start_pos != -1:
+        end_pos = text.find("*/", start_pos + 2)
+        if end_pos == -1:
+            raise ValueError("wrong end")
+        text = text[:start_pos] + text[end_pos + 2:]
+        start_pos = text.find("/*")
+    text_lines = text.split('\n')
+    for i, line in enumerate(text_lines):
+        comment_pos = line.find('#')
+        if comment_pos != -1:
+            text_lines[i] = line[:comment_pos]
+    text = '\n'.join(text_lines)
+    text = '\n'.join([line.strip() for line in text.split('\n') if line.strip()])
+    text = text.split('\n')
+
+    global RET
+
+    for line in text:
+        if line.startswith('print'):
+            print_lines = []
+            var_names = [var.strip() for var in line[6:].split(',')]
+            for name in var_names:
+                temp = interp(parse(name))
+                print_lines.append(temp)
+            print(' '.join(str(x) for x in print_lines))
+        else:
+            interp(parse(line.strip()))
 
 
 if __name__ == '__main__':
     main()
 
-# x  = 3
-# y  = 5
-# z  = 2 + x * y
-# z2 = (2 + x) * y
-# print x, y, z, z2
-# print(lex('x = 1'))
-# print(parse('x = 1'))
-# print(interp(parse('1 && 0')))
-# print(interp(parse('x')))
+
 # print(lex('print x'))
 # print(parse('print x'))
-# print(interp(parse('print x')))
-# print(interp(parse('x ^ 3')))
-# print(interp(parse('y  = 5')))
 # print(interp(parse('z  = 2 + x * y')))
-# print(lex('(2 + x) * y'))
-# print(interp(parse('(2 + x) * y')))
-# print(RET)
-# print(interp(parse('y++')))
-# print(RET_temp)
-# print(RET)
+
